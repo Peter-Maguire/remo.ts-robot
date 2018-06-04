@@ -1,0 +1,29 @@
+{
+	"Host": "letsrobot.tv",
+	"RobotID": "",
+	"CameraID": "",
+	"StreamKey": "hello",
+	"VoiceVolume": 100,
+	"SpeakerDevice": 0,
+	"SerialBaud": 115200,
+	"AudioType": "microphone",
+	"AudioFrequency": 44100,
+	"AudioBitrate": "32k",
+	"MicrophoneDevice": 1,
+	"MicrophoneChannels": 1,
+	"MicrophoneSensitivity": 100,
+	"Resolution": [1280,720],
+	"Framerate": 25,
+	"VideoType": "camera",
+	"VideoDevice": "/dev/video0",
+	"VideoBitrate": "350k",
+	"UseRaspicam": false,
+	"FlipVideo": false,
+	"StreamURL": "rtsp://192.168.1.86/multicast",
+	"CameraSettings":{
+	},
+	"Images": {
+		"testcard": "/home/pi/deirdre/images/lrtestcard.png",
+		"endcard":  "/home/pi/deirdre/images/deirdre-endcard.png"
+	}
+}
