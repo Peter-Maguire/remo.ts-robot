@@ -1,5 +1,6 @@
-#Node.js Letsrobot Client
+##Node.js Letsrobot Client
 
+This is a client for [letsrobot.tv](https://letsrobot.tv). It's designed to run on a raspberry pi but should run on basically any linux distro. 
 
 Kind of early stages, it has the following limitations:
  - Only supports serial controllers and requires tweaking if yours doesn't register on /tty/ACM0 or /tty/ACM1 (See [control.js#143](https://github.com/UnacceptableUse/letsrobot-node/blob/master/letsrobot/control.js#L143))
