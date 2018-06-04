@@ -12,7 +12,7 @@ var lastCommand;
 
 var currentChild;
 
-var deviceNum = 0;
+var deviceNum = config.get("SpeakerDevice");
 var commandCount = 0;
 
 var soundfx = {
@@ -79,13 +79,13 @@ function processChatMessage(data){
 	var soundEffect = soundfx[messageExtracted.toLowerCase().replace(/[^a-zA-Z ]/g,"")];
 	if(messageExtracted.indexOf("killspeech") > -1 && currentChild){
 		console.log("Killing speech");
-		currentChild.kill("SIGHUP");
+		currentChild.kill();
 	}else if(soundEffect){
 		isSpeaing = true;
-		currentChild = child_process.exec(`aplay ~/deirdre/soundfx/${soundEffect}  -D plughw:${deviceNum} `, function(){
+		currentChild = child_process.exec(`aplay ${config.get("SoundFXDir")}${soundEffect}  -D plughw:${deviceNum} `, function(){
 			isSpeaking = false;
 		});
-	}else if(messageExtracted.indexOf("http") == -1 && !messageExtracted.startsWith(".") && !isSpeaking){
+	}else if(messageExtracted.indexOf("http") === -1 && !messageExtracted.startsWith(".") && !isSpeaking){
 		speak(messageExtracted.replace(/([${}<>&|]"'|wget|echo)/g, ""));
 	}
 }
@@ -103,16 +103,13 @@ function processCommand(data){
 
 	var timeout = setTimeout(function(){
 		console.log(`[${new Date()}] !! WRITE FOR ${data.command} TOOK LONGER THAN 1 SECOND`);
-		child_process.exec(`echo "${commandCount}\n" >> commandcount.csv`, function(){
-		
-		});
 		process.exit(1);
 	}, 1000);
 
 	serialConnection.write(data.command === "stop" ? "S" : data.command, function(err){
 		commandCount++;
 		if(err){
-			console.error("Write error:")
+			console.error("Write error:");
 			console.error(err);
 		}else{
 			if(data.command === "L" || data.command === "R"){
@@ -138,7 +135,7 @@ function processCommand(data){
 
 function speak(message){
 	isSpeaking = true;
-	currentChild = child_process.exec(`espeak -v mb-en1 -p 99 -a ${config.get("VoiceVolume")} "${message}" --stdout | aplay -D plughw:${deviceNum}`, function(){
+	currentChild = child_process.exec(`espeak -v ${config.get("Voice")} -p ${config.get("VoicePitch")} -a ${config.get("VoiceVolume")} "${message}" --stdout | aplay -D plughw:${deviceNum}`, function(){
 		isSpeaking = false;
 	});
 }

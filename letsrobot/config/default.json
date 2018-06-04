@@ -25,5 +25,8 @@
 	"Images": {
 		"testcard": "/home/pi/deirdre/images/lrtestcard.png",
 		"endcard":  "/home/pi/deirdre/images/deirdre-endcard.png"
-	}
+	},
+	"SoundFXDir": "~/deirdre/soundfx",
+    "Voice": "mb-en1",
+    "VoicePitch": 99
 }
