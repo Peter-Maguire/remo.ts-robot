@@ -147,7 +147,7 @@ async function handleChat(){
 				audioPath = "/home/pi/deirdre/soundfx/goodbye.mp3";
 				changeAudioType("mp3");
 				changeVideoType("image");
-			}else if(args[0] === "shutdown"){
+			}else if(args[0] === ".shutdown"){
 				child_process.exec("sudo shutdown now");
 			}
 		}
