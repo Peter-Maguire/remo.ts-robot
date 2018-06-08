@@ -112,13 +112,6 @@ function processCommand(data){
 			console.error("Write error:");
 			console.error(err);
 		}else{
-			if(data.command === "L" || data.command === "R"){
-				var stopTimeout = setTimeout(function(){
-					processCommand({command: "S"});
-				}, 500);
-			}else if(data.command === "stop" && stopTimeout){
-				clearTimeout(stopTimeout);
-			}
 			clearTimeout(timeout);
 			var writeEnd = new Date();
 			var writeTime = writeEnd-writeStart;
