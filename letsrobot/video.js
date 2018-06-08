@@ -3,6 +3,7 @@ const socketio = require('socket.io-client');
 const child_process = require('child_process');
 const request = require('request');
 const kill = require('tree-kill');
+const os = require('os');
 
 var videoType = config.get("VideoType");
 var audioType = config.get("AudioType");
@@ -165,7 +166,7 @@ function connectToAppServer(){
 
 	appWs.on("command_to_robot", function(data){
 		console.log(arguments);
-	})
+	});
 
 	appWs.emit('identify_robot_id', config.get("RobotID"));
 
@@ -214,18 +215,18 @@ function createDynamicText(file, x, y, size, color, boxcolor, boxborder){
 }
 
 function createVideoFilters(){
-	var output = ""
+	var output = "";
 
 	if(statusText){
 		output+=createStaticText(statusText, 5, 5);
 	}
 	
 	if(config.get("FlipVideo")){
-		output += ","
+		output += ",";
 		output += "transpose=2,transpose=2";
 	}
 
-	if(output == "")return null;
+	if(output === "")return null;
 	return ["-vf", output];
 }
 
@@ -257,7 +258,7 @@ async function createStreamArgs(){
 
 	var videoOptions = [];
 	videoOptions.push("-r", config.get("Framerate")); 			//Input Framerate
-	videoOptions.push("-buffer_size", "500000")
+	videoOptions.push("-buffer_size", "500000");
 	videoOptions.push("-i", streamPath); 						//Input Device
 	if(videoFilters)
 		videoOptions.push(videoFilters[0], videoFilters[1]);
@@ -292,7 +293,8 @@ async function createMicrophoneArgs(){
 	const relayHost = await getWebsocketRelayHost();
 	const audioPort = await getAudioPort();
 
-	var audioOptions = ["-f", "alsa"];
+    var audioOptions = ["-f"];
+    audioOptions.push(os.type === "Windows_NT" ? "dshow" : "alsa");
 	audioOptions.push("-ar", config.get("AudioFrequency")); 			//Audio Sampling Frequency			
 	audioOptions.push("-ac", config.get("MicrophoneChannels")); 		//Microphone Channels	
 	audioOptions.push("-i", `hw:${config.get("MicrophoneDevice")}`);	//Input Device		
