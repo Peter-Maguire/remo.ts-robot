@@ -108,7 +108,7 @@ async function handleChat(){
 		var messageRaw = data.message;
 		var messageExtracted = messageRaw.split("] ")[1];
 		console.log(messageExtracted);
-		if(data.name === "unacceptableuse" && messageExtracted.startsWith(".")){
+		if(data.name ===  config.get("AdminUser") && messageExtracted.startsWith(".")){
 			console.log("Got command");
 			const args = messageExtracted.toLowerCase().split(" ");
 			if(args[0] === ".setvideo"){

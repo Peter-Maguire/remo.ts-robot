@@ -28,5 +28,6 @@
 	},
 	"SoundFXDir": "~/deirdre/soundfx",
     "Voice": "mb-en1",
-    "VoicePitch": 99
+    "VoicePitch": 99,
+	"AdminUser": "unacceptableuse"
 }
