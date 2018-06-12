@@ -1,0 +1,20 @@
+{
+  "name": "letsrobot",
+  "version": "1.0.0",
+  "description": "Node.js version of the letsrobot code",
+  "main": "control.js",
+  "dependencies": {
+    "child_process": "^1.0.2",
+    "config": "^1.30.0",
+    "request": "^2.87.0",
+    "serialport": "^6.2.0",
+    "socket.io-client": "^2.1.1",
+    "tree-kill": "^1.2.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "UnacceptableUse",
+  "license": "ISC"
+}
