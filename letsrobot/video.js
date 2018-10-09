@@ -14,6 +14,8 @@ var streamPath = config.get("StreamURL");
 var appWs;
 var videoProcess;
 var audioProcess;
+var recentVideoRestarts = 0;
+var videoError = "";
 var xRes = config.get("Resolution")[0];
 var yRes = config.get("Resolution")[1];
 var micEnabled = config.get("MicrophoneDevice") > -1;
@@ -203,11 +205,12 @@ function createDynamicText(file, x, y, size, color, boxcolor, boxborder){
 	var output = 'drawtext="';
 	output += `textfile='${file}':`;
 	output += `reload=1:`;
+    output += `fontfile=/home/pi/letsrobot-node/letsrobot/fonts/VeraMono.ttf:`;
 	output += `fontcolor=${color || "white"}:`;
 	output += `fontsize=${size || 24}:`;
-	output += "box=1:";
-	output += `boxcolor=${boxcolor || "black@0.5"}:`;
-	output += `boxborderw=${boxcolor || "5"}:`;
+	output += "box=0:";
+	// output += `boxcolor=${boxcolor || "black@0.5"}:`;
+	// output += `boxborderw=${boxcolor || "5"}:`;
 	output += `x=${x}:`;
 	output += `y=${y}`;
 	output += '"';
@@ -220,6 +223,8 @@ function createVideoFilters(){
 	if(statusText){
 		output+=createStaticText(statusText, 5, 5);
 	}
+
+	 output += createDynamicText("/home/pi/osdwarning", "(main_w/2-text_w/2)","h/2",25, "red");
 	
 	if(config.get("FlipVideo")){
 		output += ",";
@@ -288,6 +293,39 @@ async function createImageArgs(){
 	return videoOptions;
 }
 
+async function createTestPatternArgs(){
+    const relayHost = await getWebsocketRelayHost();
+    const videoPort = await getVideoPort();
+    var videoOptions = ["-f", "lavfi", "-i", `testsrc=duration=9999:size=${xRes}x${yRes}:rate=30`];
+    videoOptions.push("-vf", `"drawtext=fontfile=/home/pi/letsrobot-node/letsrobot/fonts/VeraMono.ttf:x=10:y=300:fontcolor=white:box=1:boxcolor=0x00000000@1:text='The video process has failed to start ${recentVideoRestarts} times.'"`);
+
+    videoOptions.push("-f", "mpegts");
+    videoOptions.push("-codec:v", "mpeg1video"); 				//Output Codec
+    videoOptions.push("-b:v", "350k"); 		                    //Bitrate
+    videoOptions.push("-bf", "0"); 								//B-Frames
+    videoOptions.push("-muxdelay", "0.001"); 					//Maximum Demux-decode Delay.
+    videoOptions.push(`http://${relayHost.host}:${videoPort}/${config.get("StreamKey")}/${xRes}/${yRes}/ `);
+    return videoOptions;
+}
+
+//ffmpeg -f gdigrab -framerate 10 -i desktop
+async function createScreencapArgs(){
+    const relayHost = await getWebsocketRelayHost();
+    const videoPort = await getVideoPort();
+    const videoFilters = createVideoFilters();
+    var videoOptions = ["-f", "gdigrab"];
+    videoOptions.push("-i", config.get("ScreencapSettings")); 						//Input Device
+    if(videoFilters)
+        videoOptions.push(videoFilters[0], videoFilters[1]);
+    videoOptions.push("-f", "mpegts"); 							//Output Format
+    videoOptions.push("-codec:v", "mpeg1video"); 				//Output Codec
+    videoOptions.push("-b:v", config.get("VideoBitrate")); 		//Bitrate
+    videoOptions.push("-bf", "0"); 								//B-Frames
+    videoOptions.push("-muxdelay", "0.001"); 					//Maximum Demux-decode Delay.
+    videoOptions.push(`http://${relayHost.host}:${videoPort}/${config.get("StreamKey")}/${xRes}/${yRes}/ `);
+    return videoOptions;
+}
+
 
 async function createMicrophoneArgs(){
 	const relayHost = await getWebsocketRelayHost();
@@ -326,6 +364,7 @@ async function createMp3Args(){
 }
 
 
+
 async function startAudio(){
 	if(audioProcess){
 		kill(audioProcess.pid);
@@ -337,6 +376,8 @@ async function startAudio(){
 
 	var audioArgs;
 
+	if(audioType === "none")
+	    return;
 	if(audioType === "microphone")
 		audioArgs = await createMicrophoneArgs();
 	else if(audioType === "mp3")
@@ -374,14 +415,20 @@ async function startVideo(){
 	console.log("Starting Video");
 
 	var videoArgs;
-
+	if(videoType === "none")
+		return;
 	if(videoType === "camera")
 		videoArgs = await createCameraArgs();
 	else if(videoType === "stream")
 		videoArgs = await createStreamArgs();
 	else if(videoType === "image")
 		videoArgs = await createImageArgs();
+    else if(videoType === "screencap")
+        videoArgs = await createScreencapArgs();
+    else if(videoType === "failsafe")
+        videoArgs = await createTestPatternArgs();
 
+    console.log("ffmpeg "+(videoArgs.join(" ")));
 	videoProcess = child_process.spawn("ffmpeg", videoArgs, {shell: true, detached: true});
 
 	videoProcess.stdout.on('data', function(data){
@@ -389,13 +436,23 @@ async function startVideo(){
 	});
 
 	videoProcess.stderr.on('data', function(data){
-		console.error("V: "+data.toString());
+	    const message = data.toString();
+	    if(message.indexOf("error") > -1)videoError +=message+"\n";
+		console.error("V: "+message);
 	});
 
 	videoProcess.on('close', (code) => {
   		console.log(`Video Process exited with code ${code}`);
   		videoProcess =null;
-  		setTimeout(startVideo, 1000);
+  		recentVideoRestarts++;
+  		if(recentVideoRestarts > 2){
+  		    console.log("too many video restarts");
+  		    videoType = "failsafe";
+            setTimeout(startVideo, 1000);
+        }else{
+            setTimeout(startVideo, 1000);
+        }
+
 	});
 }
 
@@ -424,6 +481,10 @@ async function init(){
 	handleChat();
 	startVideo();
 	startAudio();
+
+	setInterval(function(){
+	    recentVideoRestarts = 0;
+    }, 30000);
 }
 
 

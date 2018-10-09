@@ -3,6 +3,7 @@ var request = require('request');
 var socketio = require('socket.io-client');
 var child_process = require('child_process');
 var SerialPort = require("serialport");
+const fs = require('fs');
 
 var isSpeaking = false;
 
@@ -133,14 +134,39 @@ function speak(message){
 	});
 }
 
+let warning = false;
+
 function createSerialConnection(port){
 	console.log("Creating Serial Connection on "+(port ? port : "/dev/ttyACM0"));
-	serialConnection = new SerialPort(port || '/dev/ttyACM0', {baudRate: config.get("SerialBaud")})
+	serialConnection = new SerialPort(port || '/dev/ttyACM0', {baudRate: config.get("SerialBaud")});
+
+	serialConnection.on("data", function(buf){
+		const data = buf.toString();
+		if(data.indexOf(":") > -1){
+		    const split = data.split(":");
+		    const sense1 = split[0];
+		    const sense2 = split[1];
+		    console.log(`L: ${sense2} R: ${sense1}`);
+		    if(sense1 > 500 || sense2 > 500){
+		        warning = true;
+		        console.log("OVERLOAD!!");
+		        serialConnection.write("S");
+		        let output = "";
+		        if(sense1 > 500)output+="Right Wheel Stuck!\n";
+                if(sense2 > 500)output+="Left Wheel Stuck!\n";
+		        fs.writeFile("/home/pi/osdwarning", output, function(){});
+            }else if(warning){
+		        warning = false;
+		        fs.writeFile("/home/pi/osdwarning", " ", function(){});
+            }
+
+        }
+	});
 
 	serialConnection.on('error', function(err){
 		console.error(err);
 		if(!port)
-			setTimeout(createSerialConnection, 1000, '/dev/ttyACM1')
+			setTimeout(createSerialConnection, 1000, '/dev/ttyACM1');
 		else
 			setTimeout(createSerialConnection, 1000)
 	});
