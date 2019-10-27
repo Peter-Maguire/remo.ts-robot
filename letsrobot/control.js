@@ -3,6 +3,7 @@ var request = require('request');
 var socketio = require('socket.io-client');
 var child_process = require('child_process');
 var SerialPort = require("serialport");
+let net = require('net');
 const fs = require('fs');
 
 var isSpeaking = false;
@@ -82,7 +83,7 @@ function processChatMessage(data){
 		console.log("Killing speech");
 		currentChild.kill();
 	}else if(soundEffect){
-		isSpeaing = true;
+		isSpeaking = true;
 		currentChild = child_process.exec(`aplay ${config.get("SoundFXDir")}${soundEffect}  -D plughw:${deviceNum} `, function(){
 			isSpeaking = false;
 		});
@@ -93,41 +94,16 @@ function processChatMessage(data){
 
 function processCommand(data){
 	if(data.command === lastCommand)return;
-	if(!serialConnection)return;
+	if(!client)return;
+	if(["F", "R", "B", "L", "stop"].indexOf(data.command) > -1)return;
 	lastCommand = data.command;
-
-
-
-	var writeStart = new Date();
-
-	console.log(`[${writeStart}] Write started ${data.command}`);
-
-	var timeout = setTimeout(function(){
-		console.log(`[${new Date()}] !! WRITE FOR ${data.command} TOOK LONGER THAN 1 SECOND`);
-		process.exit(1);
-	}, 1000);
-
-	serialConnection.write(data.command === "stop" ? "S" : data.command, function(err){
-		commandCount++;
-		if(err){
-			console.error("Write error:");
-			console.error(err);
-		}else{
-			clearTimeout(timeout);
-			var writeEnd = new Date();
-			var writeTime = writeEnd-writeStart;
-			if(writeTime > 1000){
-				console.log("Write time exceeded one second. Restarting");
-				process.exit(1);
-			}
-			console.log(`[${writeStart}] Write finished ${data.command} (${writeEnd-writeStart}ms ${commandCount} commands.)`);
-		}
-	});
-
+	console.log(data.command);
+	client.write(data.command+"\r\n");
 
 }
 
 function speak(message){
+	return;
 	isSpeaking = true;
 	currentChild = child_process.exec(`espeak -v ${config.get("Voice")} -p ${config.get("VoicePitch")} -a ${config.get("VoiceVolume")} "${message}" --stdout | aplay -D plughw:${deviceNum}`, function(){
 		isSpeaking = false;
@@ -169,6 +145,14 @@ function createSerialConnection(port){
 			setTimeout(createSerialConnection, 1000, '/dev/ttyACM1');
 		else
 			setTimeout(createSerialConnection, 1000)
+	});
+}
+let client;
+
+function createTelnetConnection(){
+	client = net.createConnection({host: "192.168.1.247", port: 23 }, function(){
+		console.log('connected to server!');
+		client.write('P0\r\n');
 	});
 }
 
@@ -249,7 +233,8 @@ async function handleControl(){
 
 
 function start(){
-	createSerialConnection();
+	//createSerialConnection();
+	createTelnetConnection();
 	handleChat();
 	handleControl();	
 }

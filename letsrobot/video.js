@@ -178,7 +178,7 @@ function connectToAppServer(){
 		    	'ffmpeg_process_exists': true, 
 		    	'camera_id':config.get("CameraID")
 	    });
-	}, 1000);
+	}, 60000);
 
 
 	setInterval(function(){
@@ -221,10 +221,10 @@ function createVideoFilters(){
 	var output = "";
 
 	if(statusText){
-		output+=createStaticText(statusText, 5, 5);
+		//output+=createStaticText(statusText, 5, 5);
 	}
 
-	 output += createDynamicText("/home/pi/osdwarning", "(main_w/2-text_w/2)","h/2",25, "red");
+	 //output += createDynamicText("/home/pi/osdwarning", "(main_w/2-text_w/2)","h/2",25, "red");
 	
 	if(config.get("FlipVideo")){
 		output += ",";
@@ -252,7 +252,7 @@ async function createCameraArgs(){
 	videoOptions.push("-b:v", config.get("VideoBitrate")); 		//Bitrate
 	videoOptions.push("-bf", "0"); 								//B-Frames
 	videoOptions.push("-muxdelay", "0.001"); 					//Maximum Demux-decode Delay.
-	videoOptions.push(`http://${relayHost.host}:${videoPort}/${config.get("StreamKey")}/${xRes}/${yRes}/ `); 
+	videoOptions.push(`http://${config.get("Host")}/transmit?name=${config.get("Channel")}/${xRes}/${yRes}/ `);
 	return videoOptions;
 }
 
@@ -352,7 +352,7 @@ async function createMp3Args(){
 	const audioPort = await getAudioPort();
 
 	var audioOptions = ["-f", "mp3", "-re"];
-	audioOptions.push("-i", audioPath);	//Input Device		
+	audioOptions.push("-i", audioPath);	//Input Device
 	audioOptions.push("-f", "mpegts");									//Output Format
 	audioOptions.push("-codec:a", "mp2");								//Output Codec
 	audioOptions.push("-b:a", config.get("AudioBitrate"));				//Bitrate
@@ -363,7 +363,21 @@ async function createMp3Args(){
 	return audioOptions;
 }
 
+async function createStreamAudio(){
+	const relayHost = await getWebsocketRelayHost();
+	const audioPort = await getAudioPort();
 
+
+	var audioOptions = [];
+	audioOptions.push("-r", config.get("Framerate")); 			//Input Framerate
+	audioOptions.push("-buffer_size", "500000");
+	audioOptions.push("-i", streamPath); 						//Input Device
+	audioOptions.push("-f", "mpegts"); 							//Output Format
+	audioOptions.push("-codec:a", "mp2"); 				//Output Codec
+	audioOptions.push("-b:a", config.get("AudioBitrate"));				//Bitrate
+	audioOptions.push(`http://${relayHost.host}:${audioPort}/${config.get("StreamKey")}/${xRes}/${yRes}/ `);
+	return audioOptions;
+}
 
 async function startAudio(){
 	if(audioProcess){
@@ -382,6 +396,8 @@ async function startAudio(){
 		audioArgs = await createMicrophoneArgs();
 	else if(audioType === "mp3")
 		audioArgs = await createMp3Args();
+	else if(audioType === "stream")
+		audioArgs = await createStreamAudio();
 	
 
 
