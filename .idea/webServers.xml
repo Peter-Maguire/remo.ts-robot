@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="WebServers">
+    <option name="servers">
+      <webServer id="cd0ed3bf-8f5d-40d3-abbb-baebb7d4b334" name="Deirdre" url="http://192.168.1.235">
+        <fileTransfer host="192.168.1.235" port="22" rootFolder="/home/pi/letsrobot-node" accessType="SFTP">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" shareSSLContext="true" />
+          </advancedOptions>
+          <option name="port" value="22" />
+        </fileTransfer>
+      </webServer>
+      <webServer id="3f6df1a6-452c-4bbe-94eb-6404de982207" name="ChristmasTree" url="http://192.168.1.135">
+        <fileTransfer host="192.168.1.135" port="21" rootFolder="/home/grafana/christmastree">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" passiveMode="true" shareSSLContext="true" />
+          </advancedOptions>
+          <option name="port" value="21" />
+        </fileTransfer>
+      </webServer>
+    </option>
+  </component>
+</project>

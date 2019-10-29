@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/letsrobot/letsrobot.iml" filepath="$PROJECT_DIR$/letsrobot/letsrobot.iml" />
+      <module fileurl="file://$PROJECT_DIR$/remots/remots.iml" filepath="$PROJECT_DIR$/remots/remots.iml" />
     </modules>
   </component>
 </project>
