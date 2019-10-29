@@ -29,6 +29,6 @@ export default class Server {
             return this.channels;
         const result = await fetch(`https://${Remo.HOST}/api/${Remo.VERSION}/channels/list/${this.id}`);
         this.hasFetchedChannels = true;
-        return this.channels = result.json().reduce((o,c)=>o[c.id] = new Channel(c), {});
+        return this.channels = (<Array<any>>(await result.json()).channels).reduce((o,c)=>o[c.id] = new Channel(c), {});
     }
 }

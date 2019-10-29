@@ -1,5 +1,6 @@
 import * as express from "express";
 import * as bodyParser from "body-parser";
+import Config from "../Config";
 
 export default class HttpServer {
     public app: express.Application;
@@ -7,13 +8,19 @@ export default class HttpServer {
         this.app = express();
 
         this.app.use(bodyParser.json());
-        this.app.use(bodyParser.json());
-        //support application/x-www-form-urlencoded post data
         this.app.use(bodyParser.urlencoded({ extended: false }));
 
         this.app.use(express.static('static'));
 
-        this.app.listen(3000);
+        // noinspection JSIgnoredPromiseFromCall
+        this.startServer();
+    }
 
+
+    async startServer(){
+        const port = await Config.instance().get("port");
+        this.app.listen(port, function(){
+            console.log("Listening on port "+port)
+        });
     }
 }
