@@ -1,10 +1,11 @@
 import * as express from "express";
 import * as bodyParser from "body-parser";
 import Config from "../Config";
+import Robot from "../Robot";
 
 export default class HttpServer {
     public app: express.Application;
-    constructor() {
+    constructor(robot: Robot) {
         this.app = express();
 
         this.app.use(bodyParser.json());

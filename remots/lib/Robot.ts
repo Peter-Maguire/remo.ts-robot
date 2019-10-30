@@ -4,32 +4,40 @@ import Remo from "./remo/Remo";
 import RobotValidated from "./remo/event/RobotValidated";
 import Channel from "./remo/Channel";
 import MessageReceived from "./remo/event/MessageReceived";
+import Control from "./control/Control";
+import SerialControl from "./control/SerialControl";
+import ButtonCommand from "./remo/event/ButtonCommand";
+import Video from "./video/Video";
 
 export default class Robot {
     config: Config;
     remo: Remo;
     server: HttpServer;
+    controls: Control;
+    av: Video;
 
     constructor(){
        this.config = new Config();
-       this.server = new HttpServer();
+       this.server = new HttpServer(this);
        this.remo = new Remo();
+       this.controls = new SerialControl();
+       this.av = new Video();
 
        this.remo.connectToWebsocket();
 
        let that = this;
-       this.remo.on("websocketOpened", async function(){
+       this.remo.on("websocketOpened", async ()=>{
            console.log("Connected!");
-           await that.remo.loginRobot(await that.config.get("token"));
+           await this.remo.loginRobot(await that.config.get("token"));
        });
 
-        this.remo.on("ready", async function(evt: RobotValidated){
+        this.remo.on("ready", async (evt: RobotValidated)=>{
             console.log("Logged in!");
-            let channelId = await that.config.get("channelId");
+            let channelId = await this.config.get("channelId");
             if(channelId)
-                return that.remo.joinChannel(channelId);
-            let channels = await that.remo.getChannels(evt.server_id);
-            let target = (await that.config.get("channelName")).toLowerCase();
+                return this.remo.joinChannel(channelId);
+            let channels = await this.remo.getChannels(evt.server_id);
+            let target = (await this.config.get("channelName")).toLowerCase();
             let targetChannel: Channel;
             channels.forEach((channel)=>{
                 if(channel.name.toLowerCase() === target)
@@ -38,12 +46,18 @@ export default class Robot {
             if(!targetChannel)
                 return console.error("Could not find channel ID to bind to!");
             console.log(`Joining ${targetChannel.name}`);
-            that.remo.joinChannel(targetChannel);
+            this.remo.joinChannel(targetChannel);
+            this.av.startVideoStream(targetChannel);
         });
 
         this.remo.on("message", function(evt: MessageReceived){
             const msg = evt.message;
             console.log(`[${msg.created.toLocaleString()}] <${msg.username}> ${msg.content}`)
+        });
+
+        this.remo.on("command", (event: ButtonCommand)=>{
+            if(!this.controls || !this.controls.ready)return;
+            this.controls.doCommand(event.button);
         });
 
     }
