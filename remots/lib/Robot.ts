@@ -8,6 +8,9 @@ import Control from "./control/Control";
 import SerialControl from "./control/SerialControl";
 import ButtonCommand from "./remo/event/ButtonCommand";
 import Video from "./video/Video";
+import Espeak from "./speech/Espeak";
+import Speech from "./speech/Speech";
+import StaticImage from "./video/StaticImage";
 
 export default class Robot {
     config: Config;
@@ -15,13 +18,15 @@ export default class Robot {
     server: HttpServer;
     controls: Control;
     av: Video;
+    tts: Speech;
 
     constructor(){
        this.config = new Config();
        this.server = new HttpServer(this);
        this.remo = new Remo();
        this.controls = new SerialControl();
-       this.av = new Video();
+       this.av = new StaticImage();
+       this.tts = new Espeak();
 
        this.remo.connectToWebsocket();
 
@@ -47,12 +52,14 @@ export default class Robot {
                 return console.error("Could not find channel ID to bind to!");
             console.log(`Joining ${targetChannel.name}`);
             this.remo.joinChannel(targetChannel);
-            this.av.startVideoStream(targetChannel);
+            this.av.startAv(targetChannel);
+
         });
 
-        this.remo.on("message", function(evt: MessageReceived){
+        this.remo.on("message", (evt: MessageReceived)=>{
             const msg = evt.message;
-            console.log(`[${msg.created.toLocaleString()}] <${msg.username}> ${msg.content}`)
+            console.log(`[${msg.created.toLocaleString()}] <${msg.username}> ${msg.content}`);
+            this.tts.speak(msg.content);
         });
 
         this.remo.on("command", (event: ButtonCommand)=>{
