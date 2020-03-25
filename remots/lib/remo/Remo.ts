@@ -57,11 +57,11 @@ export default class Remo extends EventEmitter {
             console.log(this.servers);
         });
         this.on("websocketRaw", function(evt){
-            console.info("<-",evt);
+           // console.info("<-",evt);
         });
 
         this.on("websocketRawSend", function(evt){
-            console.info("->",evt);
+         //   console.info("->",evt);
         });
     }
 

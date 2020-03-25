@@ -2,6 +2,8 @@ import * as ffmpeg from 'fluent-ffmpeg';
 import Remo from "../remo/Remo";
 import Channel from "../remo/Channel";
 import {exec} from "child_process";
+import 'process';
+import Config from "../Config";
 export default class Video {
 
     config: any = {
@@ -16,11 +18,38 @@ export default class Video {
         audioFormat: "S16_LE",
         audioSampleRate: "44100",
         audioBitrate: "32k",
+        audioBuffer: "8192k",
+        videoFormat: "mpegts",
+        videoCodec: "mpeg1video",
+        videoBitrate: "350k"
     };
 
     videoStream: any;
     audioStream: any;
+    videoData: any;
+    audioData: any;
     retries: number = 0;
+    lastVideoDeath: Date;
+    lastAudioDeath: Date;
+
+
+    async init() {
+        //@ts-ignore
+        const id = this.constructor.getId();
+        let config = await Config.instance().getBulk(Object.keys(this.config).map((val)=>`${id}.${val}`))
+        for(let key in config){
+            this.config[key.substring(id.length+1)] = config[key];
+        }
+    }
+
+    static getId(): string{
+        return "camera";
+    }
+
+    async reloadConfig(channel: Channel){
+        await this.init();
+        this.start(channel);
+    }
 
     start(channel: Channel){
         this.startAudioStream(channel);
@@ -39,27 +68,39 @@ export default class Video {
 
     startVideoStream(channel: Channel){
         if(this.videoStream)
-            this.videoStream.kill();
+            this.videoStream.kill('SIGTERM');
+        console.log("Starting video stream");
         this.videoStream = this.createVideoStream(channel);
         this.videoStream.run();
+        this.videoStream.on("progress", (progress)=>{
+            this.videoData = progress;
+        });
         this.videoStream.on("start", function(){
             console.log("Starting");
         });
         this.videoStream.on("stderr", function(msg){
-            console.error(msg);
+            //console.error(msg);
+        });
+        this.videoStream.on("error", function(error){
+            console.error(error);
         });
         this.videoStream.on("end", (err)=>{
             console.error("Video stream died!");
             console.log(err);
-            setTimeout(()=>this.startVideoStream(channel), this.retries++*1000, channel);
+            this.lastVideoDeath = new Date();
+            if(this.retries < 10){
+                setTimeout(()=>this.startVideoStream(channel), this.retries++*1000, channel);
+            }else{
+                console.error("Tried 10 times to restart video and failed...");
+                process.exit(100);
+            }
         })
     }
 
     stopVideoStream(){
         if(this.videoStream)
-            this.videoStream.kill();
+            this.videoStream.kill('SIGTERM');
     }
-
 
     createVideoStream(channel: Channel): ffmpeg{
             return ffmpeg(this.config.input)
@@ -67,19 +108,19 @@ export default class Video {
                     .inputOptions('-r',this.config.fps)
                     .fps(this.config.fps)
                     .inputFormat(this.config.inputFormat)
-                    .format("mpegts")
-                    .videoFilters(this.config.filters)
+                    .format(this.config.videoFormat)
+                    //.videoFilters(this.config.filters)
                     .size(this.config.resolution)
-                    .videoBitrate("350k")
-                    .videoCodec("mpeg1video")
-                    .outputOptions('-bf', '0','-muxdelay','0.001', '-nostats', '-threads', '2')
+                    .videoBitrate(this.config.videoBitrate)
+                    .videoCodec(this.config.videoCodec)
+                    .outputOptions('-bf', '0','-muxdelay','0.001', '-threads', '2')
                     .output(`http://${Remo.HOST}:1567/transmit?name=${channel.id}-video`);
     }
 
 
     stopAudioStream(){
         if(this.audioStream)
-            this.audioStream.kill();
+            this.audioStream.kill('SIGTERM');
     }
 
     startAudioStream(channel: Channel) {
@@ -92,6 +133,7 @@ export default class Video {
         });
 
         this.audioStream.on('close', (data)=>{
+            this.lastAudioDeath = new Date();
             console.error("Closed with code ",data);
             setTimeout(()=>this.startAudioStream(channel), this.retries++*1000, channel, );
         });
@@ -107,10 +149,10 @@ export default class Video {
             `-f mpegts`,
             `-codec:a ${this.config.audioCodec}`,
             `-b:a ${this.config.audioBitrate}`,
-            `-bufsize 8192k`,
+            `-bufsize ${this.config.audioBuffer}`,
             `-muxdelay 0.001`,
             "-nostats",
-            `http://remo.tv:1567/transmit?name=${channel.id}-audio`
+            `http://${Remo.HOST}:1567/transmit?name=${channel.id}-audio`
         ].join(" "));
     }
 }

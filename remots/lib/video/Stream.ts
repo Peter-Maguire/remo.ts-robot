@@ -1,32 +1,59 @@
-import Video from "./Video";
-import Channel from "../remo/Channel";
-import Remo from "../remo/Remo";
 import * as ffmpeg from 'fluent-ffmpeg';
-export default class StaticImage extends Video {
-
+import Remo from "../remo/Remo";
+import Channel from "../remo/Channel";
+import {exec} from "child_process";
+import 'process';
+import Config from "../Config";
+import Video from './Video';
+export default class Stream extends Video{
 
     config: any = {
-        input: "static/temporary_fault.gif",
-        inputAudio: "static/against_the_clock.mp3",
+        input: "rtsp://user:pass@192.168.1.20:6667/blinkhd",
+        fps: 25,
         resolution: "1920x1080",
         filters: [],
         audioChannels: "1",
         audioCodec: "mp2",
+        audioSampleRate: "44100",
         audioBitrate: "32k",
+        audioBuffer: "8192k",
+        videoFormat: "mpegts",
+        videoCodec: "mpeg1video",
+        videoBitrate: "350k"
     };
 
+    videoStream: any;
+    audioStream: any;
+    videoData: any;
+    audioData: any;
+    retries: number = 0;
+    lastVideoDeath: Date;
+    lastAudioDeath: Date;
+
     static getId(): string{
-        return "image";
+        return "stream";
     }
 
-    start(channel: Channel){
-        console.log("Starting Static Image");
-        this.startVideoStream(channel);
-        if(this.config.inputAudio !== null){
-            this.startAudioStream(channel);
-        }
+    createVideoStream(channel: Channel): ffmpeg{
+        return ffmpeg(this.config.input)
+            .noAudio()
+            .inputOptions('-r',this.config.fps)
+            .fps(this.config.fps)
+            //.inputFormat(this.config.inputFormat)
+            .format(this.config.videoFormat)
+            //.videoFilters(this.config.filters)
+            .size(this.config.resolution)
+            .videoBitrate(this.config.videoBitrate)
+            .videoCodec(this.config.videoCodec)
+            .outputOptions('-bf', '0','-muxdelay','0.001', '-threads', '2')
+            .output(`http://${Remo.HOST}:1567/transmit?name=${channel.id}-video`);
     }
 
+
+    stopAudioStream(){
+        if(this.audioStream)
+            this.audioStream.kill('SIGTERM');
+    }
     startAudioStream(channel: Channel){
         if(this.audioStream)
             this.audioStream.kill('SIGTERM');
@@ -39,7 +66,7 @@ export default class StaticImage extends Video {
         this.audioStream.on("stderr", function(msg){
             //console.error(msg);
         });
-        this.videoStream.on("progress", (progress)=>{
+        this.audioStream.on("progress", (progress)=>{
             this.audioData = progress;
         });
         this.audioStream.on("error", function(error){
@@ -58,41 +85,16 @@ export default class StaticImage extends Video {
         })
     }
 
-
-    startAv(channel: Channel){
-        this.startVideoStream(channel);
-    }
-
-    createVideoStream(channel: Channel): ffmpeg{
-        console.log("Creating video stream");
-        let video = ffmpeg(this.config.input)
-            .noAudio()
-            .fps(25)
-            .format("mpegts")
-            //.videoFilters(this.config.filters)
-            .size(this.config.resolution)
-            .videoBitrate("350k")
-            .videoCodec("mpeg1video")
-            .outputOptions('-bf', '0','-muxdelay','0.001', '-threads', '2');
-
-        if(this.config.input.endsWith(".gif")){
-            video = video.inputOptions('-ignore_loop', '0')
-        }else{
-            video = video.loop();
-        }
-
-        return video.output(`http://${Remo.HOST}:1567/transmit?name=${channel.id}-video`);
-    }
-
-    createAudioStream(channel: Channel){
-        return ffmpeg(this.config.inputAudio)
+    createAudioStream(channel: Channel) {
+        return ffmpeg(this.config.input)
             .noVideo()
             .inputOptions('-re')
             .format("mpegts")
             .audioCodec(this.config.audioCodec)
             .audioBitrate(this.config.audioBitrate)
-            .outputOptions('-muxdelay','0.001')
+            .outputOptions('-muxdelay', '0.001')
             .output(`http://${Remo.HOST}:1567/transmit?name=${channel.id}-audio`);
     }
-
 }
+
+

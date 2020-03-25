@@ -4,6 +4,7 @@
   "description": "Node.js version of the letsrobot code",
   "main": "control.js",
   "dependencies": {
+    "@types/sqlite3": "^3.1.6",
     "@types/ws": "^6.0.3",
     "body-parser": "^1.19.0",
     "child_process": "^1.0.2",
@@ -16,6 +17,7 @@
     "request": "^2.87.0",
     "serialport": "^6.2.0",
     "socket.io-client": "^2.1.1",
+    "sqlite3": "^4.1.1",
     "telnet-client": "^0.16.2",
     "tree-kill": "^1.2.0",
     "wol": "^1.0.5",
