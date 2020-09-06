@@ -19,7 +19,7 @@
     "socket.io-client": "^2.1.1",
     "sqlite3": "^4.1.1",
     "telnet-client": "^0.16.2",
-    "tree-kill": "^1.2.0",
+    "tree-kill": "^1.2.2",
     "wol": "^1.0.5",
     "ws": "^7.2.0"
   },
