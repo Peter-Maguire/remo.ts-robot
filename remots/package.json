@@ -12,7 +12,7 @@
     "express": "^4.17.1",
     "fluent-ffmpeg": "^2.1.2",
     "lgtv2": "^1.4.1",
-    "node-fetch": "^2.6.0",
+    "node-fetch": "^2.6.1",
     "node-wol": "^0.1.1",
     "request": "^2.87.0",
     "serialport": "^6.2.0",
